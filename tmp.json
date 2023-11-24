@@ -1,0 +1,39 @@
+{
+  "seed-urls": [
+    {
+      "category": "search",
+      "url": "https://google.com",
+      "priority": 1
+    },
+    {
+      "category": "healthcare",
+      "url": "https://www.webmd.com/",
+      "priority": 2
+    },
+    {
+      "category": "career",
+      "url": "https://www.indeed.com/",
+      "priority": 1
+    },
+    {
+      "category": "finance",
+      "url": "https://www.investopedia.com/",
+      "priority": 2
+    },
+    {
+      "category": "finance",
+      "url": "https://www.investopedia.com/personal-finance-4427760",
+      "priority": 2
+    },
+    {
+      "category": "finance",
+      "url": "https://www.investopedia.com/news-4427706",
+      "priority": 3
+    },
+    {
+      "category": "finance",
+      "url": "https://www.investopedia.com/stocks-4427785",
+      "priority": 2
+    }
+  ]
+}
