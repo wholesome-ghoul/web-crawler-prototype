@@ -60,3 +60,15 @@ func (p *PriorityQueue) Print() {
 		curr = curr.prev
 	}
 }
+
+func (n *Node) Url() string {
+	return n.value.Url
+}
+
+func (n *Node) Priority() uint8 {
+	return n.value.Priority
+}
+
+func (n *Node) Hostname() string {
+	return n.value.Hostname()
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/wholesome-ghoul/web-crawler-prototype/config"
 	"github.com/wholesome-ghoul/web-crawler-prototype/frontier"
+	html_downloader "github.com/wholesome-ghoul/web-crawler-prototype/html-downloader"
 )
 
 func main() {
@@ -67,10 +68,9 @@ func main() {
 					urlFrontier.BackQueueRouter(frontQueue)
 				}
 
-				urlFrontier.PrintAllBack()
-				urlFrontier.Crawl()
-				urlFrontier.Crawl()
-				urlFrontier.Crawl()
+				// urlFrontier.PrintAllBack()
+				html_downloader.Download(*urlFrontier.UrlsToDownload())
+				html_downloader.Download(*urlFrontier.UrlsToDownload())
 
 				return nil
 			}

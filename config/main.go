@@ -15,6 +15,7 @@ type SeedUrl struct {
 	Category string `json:"category"`
 	Url      string `json:"url"`
 	Priority uint8  `json:"priority"`
+	hostname string
 }
 
 func NewConfig() *Config {
@@ -52,4 +53,12 @@ func (c *Config) Print(pretty bool) {
 	}
 
 	fmt.Println(c)
+}
+
+func (s *SeedUrl) SetHostname(hostname string) {
+	s.hostname = hostname
+}
+
+func (s *SeedUrl) Hostname() string {
+	return s.hostname
 }

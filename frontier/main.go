@@ -3,19 +3,14 @@ package frontier
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math/rand"
-	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/wholesome-ghoul/web-crawler-prototype/config"
 )
 
 const FRONT_PRIORITY_QUEUE_SIZE = 256
-const WAIT_PER_REQUEST = time.Second
-const TIMEOUT = 5 * time.Second
 
 type URLFrontier struct {
 	frontPriorityQueues []PriorityQueue
@@ -110,6 +105,7 @@ func (u *URLFrontier) BackQueueRouter(queue PriorityQueue) error {
 			return err
 		}
 		hostname := parsedUrl.Hostname()
+		seedUrl.SetHostname(hostname)
 
 		if index, ok := u.hostQueueMapping[hostname]; ok {
 			u.backPriorityQueues[index].Push(seedUrl)
@@ -126,65 +122,6 @@ func (u *URLFrontier) BackQueueRouter(queue PriorityQueue) error {
 	return nil
 }
 
-func customLog() *log.Logger {
-	logger := log.New(
-		log.Writer(),
-		"",
-		log.Ldate|log.Ltime,
-	)
-
-	return logger
-}
-
-func worker(id int, jobs <-chan *PriorityQueue, results chan<- int) {
-	for j := range jobs {
-		if j.Empty() {
-			results <- -1
-			return
-		}
-
-		curr := j.Pop()
-		client := &http.Client{}
-
-		for curr != nil {
-			url := curr.value.Url
-			request, _ := http.NewRequest("GET", url, nil)
-
-			response, err := client.Do(request)
-			customLog().Printf("WORKER %d started crawling (priority: %d) %s\n", id, curr.value.Priority, url)
-			if err != nil {
-				fmt.Println("something went wrong. ", err)
-			}
-
-			time.Sleep(WAIT_PER_REQUEST)
-			customLog().Printf("WORKER %d finished crawling %s status: %d\n", id, url, response.StatusCode)
-
-			curr = j.Pop()
-		}
-
-		results <- id
-	}
-}
-
-func (u *URLFrontier) Crawl() {
-	numJobs := len(u.backPriorityQueues)
-	jobs := make(chan *PriorityQueue, numJobs)
-	results := make(chan int, numJobs)
-
-	numWorkers := numJobs
-	fmt.Printf("Number of jobs: %d\n", numJobs)
-	for w := 1; w <= numWorkers; w++ {
-		go worker(w, jobs, results)
-	}
-
-	// priorities may not be distributed evenly, thus, some of the workers will
-	// do more work than the others
-	for j := 1; j <= numJobs; j++ {
-		jobs <- &u.backPriorityQueues[j-1]
-	}
-	close(jobs)
-
-	for r := 1; r <= numJobs; r++ {
-		<-results
-	}
+func (u *URLFrontier) UrlsToDownload() *[]PriorityQueue {
+	return &u.backPriorityQueues
 }
