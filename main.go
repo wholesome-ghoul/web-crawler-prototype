@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/urfave/cli/v2"
 	"github.com/wholesome-ghoul/web-crawler-prototype/config"
@@ -30,7 +32,6 @@ func main() {
 				Usage:       "Pass multiple urls per flag",
 				Destination: &url,
 			},
-			// TODO: locality
 			&cli.BoolFlag{
 				Name:    "locality",
 				Aliases: []string{"l"},
@@ -68,9 +69,40 @@ func main() {
 					urlFrontier.BackQueueRouter(frontQueue)
 				}
 
-				// urlFrontier.PrintAllBack()
-				html_downloader.Download(*urlFrontier.UrlsToDownload())
-				html_downloader.Download(*urlFrontier.UrlsToDownload())
+				urlsToDownload := *urlFrontier.UrlsToDownload()
+				totalUrls := urlFrontier.TotalUrls()
+				numWorkers := len(urlsToDownload)
+				var wg sync.WaitGroup
+				downloaderChannel := make(chan *frontier.PriorityQueue, numWorkers)
+				parserChannel := make(chan int, totalUrls)
+
+				fmt.Printf("Number of urls: %d\n", totalUrls)
+				fmt.Printf("Number of jobs: %d\n", numWorkers)
+				for w := 1; w <= numWorkers; w++ {
+					wg.Add(1)
+					go html_downloader.Download(w, urlsToDownload, downloaderChannel, parserChannel, &wg)
+				}
+
+				for r := 1; r <= numWorkers; r++ {
+					downloaderChannel <- &urlsToDownload[r-1]
+				}
+
+				for r := 0; r < totalUrls; r++ {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						fmt.Println(<-parserChannel)
+					}()
+				}
+
+				close(downloaderChannel)
+				wg.Wait()
+
+				close(parserChannel)
+				wg.Wait()
+
+				// fileReader, _ := os.Open("./html-data/google.com/https___google.com.html")
+				// content_parser.Parse(fileReader, results)
 
 				return nil
 			}

@@ -26,14 +26,24 @@ func sanitize(name string) string {
 	return name
 }
 
-func worker(id int, jobs <-chan *frontier.PriorityQueue) {
+func Download(id int,
+	urls []frontier.PriorityQueue,
+	jobs <-chan *frontier.PriorityQueue,
+	results chan<- int,
+	wg *sync.WaitGroup) {
+
+	defer wg.Done()
+
 	for job := range jobs {
 		if job.Empty() {
+			results <- -1
 			return
 		}
 
 		curr := job.Pop()
-		client := &http.Client{}
+		client := &http.Client{
+			Timeout: TIMEOUT,
+		}
 
 		hostnameDir := sanitize(curr.Hostname())
 		rootDir := path.Join(ROOT_DATA_DIR, hostnameDir)
@@ -45,7 +55,7 @@ func worker(id int, jobs <-chan *frontier.PriorityQueue) {
 			request, _ := http.NewRequest("GET", url, nil)
 
 			response, err := client.Do(request)
-			logger.Log().Printf("WORKER %d started fetching (priority: %d) %s\n", id, curr.Priority(), url)
+			// logger.Log().Printf("WORKER %d started fetching (priority: %d) %s\n", id, curr.Priority(), url)
 			if err != nil {
 				fmt.Println("something went wrong. ", err)
 			}
@@ -56,34 +66,30 @@ func worker(id int, jobs <-chan *frontier.PriorityQueue) {
 			}
 			defer response.Body.Close()
 
-			err = os.WriteFile(filename, responseBody, 0444)
+			err = os.WriteFile(filename, responseBody, 0666)
 			if err != nil {
-				fmt.Println("could not write to file ", filename)
+				fmt.Println("could not write to file", filename, "reason: ", err)
 			}
 
 			time.Sleep(WAIT_PER_REQUEST)
 			logger.Log().Printf("WORKER %d finished fetching %s status: %d\n", id, url, response.StatusCode)
 
 			curr = job.Pop()
+
+			results <- id
 		}
 	}
 }
 
-func Download(urls []frontier.PriorityQueue) {
+func _Download(urls []frontier.PriorityQueue, jobs chan *frontier.PriorityQueue, wg *sync.WaitGroup) {
 	numJobs := len(urls)
-	jobs := make(chan *frontier.PriorityQueue, numJobs)
-	var wg sync.WaitGroup
+	results := make(chan int, numJobs)
 
 	numWorkers := numJobs
 	fmt.Printf("Number of jobs: %d\n", numJobs)
 	for w := 1; w <= numWorkers; w++ {
 		wg.Add(1)
-		w := w
-
-		go func() {
-			defer wg.Done()
-			worker(w, jobs)
-		}()
+		// go worker(w, jobs, results, wg)
 	}
 
 	// priorities may not be distributed evenly, thus, some of the workers will
@@ -92,6 +98,10 @@ func Download(urls []frontier.PriorityQueue) {
 		jobs <- &urls[j-1]
 	}
 	close(jobs)
+
+	for r := 1; r <= numJobs+3; r++ {
+		fmt.Println(<-results)
+	}
 
 	wg.Wait()
 }

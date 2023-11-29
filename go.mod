@@ -2,7 +2,10 @@ module github.com/wholesome-ghoul/web-crawler-prototype
 
 go 1.21.1
 
-require github.com/urfave/cli/v2 v2.25.7
+require (
+	github.com/urfave/cli/v2 v2.25.7
+	golang.org/x/net v0.18.0
+)
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect

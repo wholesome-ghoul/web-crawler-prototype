@@ -16,17 +16,20 @@ type URLFrontier struct {
 	frontPriorityQueues []PriorityQueue
 	backPriorityQueues  []PriorityQueue
 	hostQueueMapping    map[string]int
+	totalUrls           int
 }
 
 func New() *URLFrontier {
 	frontPriorityQueues := make([]PriorityQueue, FRONT_PRIORITY_QUEUE_SIZE)
 	backPriorityQueues := []PriorityQueue{}
 	hostQueueMapping := make(map[string]int)
+	totalUrls := 0
 
 	return &URLFrontier{
 		frontPriorityQueues,
 		backPriorityQueues,
 		hostQueueMapping,
+		totalUrls,
 	}
 }
 
@@ -116,6 +119,8 @@ func (u *URLFrontier) BackQueueRouter(queue PriorityQueue) error {
 			u.backPriorityQueues = append(u.backPriorityQueues, pq)
 		}
 
+		u.totalUrls++
+
 		curr = curr.prev
 	}
 
@@ -124,4 +129,8 @@ func (u *URLFrontier) BackQueueRouter(queue PriorityQueue) error {
 
 func (u *URLFrontier) UrlsToDownload() *[]PriorityQueue {
 	return &u.backPriorityQueues
+}
+
+func (u *URLFrontier) TotalUrls() int {
+	return u.totalUrls
 }
