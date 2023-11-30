@@ -8,8 +8,9 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"github.com/wholesome-ghoul/web-crawler-prototype/config"
+	contentParser "github.com/wholesome-ghoul/web-crawler-prototype/content-parser"
 	"github.com/wholesome-ghoul/web-crawler-prototype/frontier"
-	html_downloader "github.com/wholesome-ghoul/web-crawler-prototype/html-downloader"
+	htmlDownloader "github.com/wholesome-ghoul/web-crawler-prototype/html-downloader"
 )
 
 func main() {
@@ -72,37 +73,32 @@ func main() {
 				urlsToDownload := *urlFrontier.UrlsToDownload()
 				totalUrls := urlFrontier.TotalUrls()
 				numWorkers := len(urlsToDownload)
-				var wg sync.WaitGroup
 				downloaderChannel := make(chan *frontier.PriorityQueue, numWorkers)
-				parserChannel := make(chan int, totalUrls)
+				parserChannel := make(chan contentParser.Content, totalUrls)
 
 				fmt.Printf("Number of urls: %d\n", totalUrls)
 				fmt.Printf("Number of jobs: %d\n", numWorkers)
+				var wg sync.WaitGroup
 				for w := 1; w <= numWorkers; w++ {
 					wg.Add(1)
-					go html_downloader.Download(w, urlsToDownload, downloaderChannel, parserChannel, &wg)
-				}
-
-				for r := 1; r <= numWorkers; r++ {
-					downloaderChannel <- &urlsToDownload[r-1]
-				}
-
-				for r := 0; r < totalUrls; r++ {
-					wg.Add(1)
+					w := w
 					go func() {
 						defer wg.Done()
-						fmt.Println(<-parserChannel)
+						htmlDownloader.Download(w, downloaderChannel, parserChannel)
 					}()
-				}
 
+					for i := 0; i < urlsToDownload[w-1].Size(); i++ {
+						wg.Add(1)
+						go func() {
+							defer wg.Done()
+							contentParser.Parse(<-parserChannel)
+						}()
+					}
+
+					downloaderChannel <- &urlsToDownload[w-1]
+				}
 				close(downloaderChannel)
 				wg.Wait()
-
-				close(parserChannel)
-				wg.Wait()
-
-				// fileReader, _ := os.Open("./html-data/google.com/https___google.com.html")
-				// content_parser.Parse(fileReader, results)
 
 				return nil
 			}

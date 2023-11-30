@@ -14,3 +14,4 @@
 - locality
 - dns resolution
 - distributed crawler
+- parsed content validation

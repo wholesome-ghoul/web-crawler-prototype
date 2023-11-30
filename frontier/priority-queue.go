@@ -8,6 +8,7 @@ import (
 
 type PriorityQueue struct {
 	last *Node
+	size int
 }
 
 type Node struct {
@@ -17,6 +18,7 @@ type Node struct {
 }
 
 func (p *PriorityQueue) Push(seedUrl config.SeedUrl) {
+	p.size++
 	node := Node{
 		next:  nil,
 		value: seedUrl,
@@ -38,6 +40,7 @@ func (p *PriorityQueue) Pop() *Node {
 		return nil
 	}
 
+	p.size--
 	node := p.last
 	p.last = p.last.prev
 
@@ -50,6 +53,10 @@ func (p *PriorityQueue) Pop() *Node {
 
 func (p *PriorityQueue) Empty() bool {
 	return p.last == nil
+}
+
+func (p *PriorityQueue) Size() int {
+	return p.size
 }
 
 func (p *PriorityQueue) Print() {

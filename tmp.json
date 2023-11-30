@@ -11,6 +11,11 @@
       "priority": 2
     },
     {
+      "category": "healthcare",
+      "url": "https://www.webmd.com/depression/default.htm",
+      "priority": 2
+    },
+    {
       "category": "career",
       "url": "https://www.indeed.com/",
       "priority": 1

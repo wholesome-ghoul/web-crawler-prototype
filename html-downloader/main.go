@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	contentParser "github.com/wholesome-ghoul/web-crawler-prototype/content-parser"
 	logger "github.com/wholesome-ghoul/web-crawler-prototype/custom-logger"
 	"github.com/wholesome-ghoul/web-crawler-prototype/frontier"
 )
@@ -27,16 +28,12 @@ func sanitize(name string) string {
 }
 
 func Download(id int,
-	urls []frontier.PriorityQueue,
 	jobs <-chan *frontier.PriorityQueue,
-	results chan<- int,
-	wg *sync.WaitGroup) {
-
-	defer wg.Done()
-
+	parserChannel chan<- contentParser.Content,
+) {
 	for job := range jobs {
 		if job.Empty() {
-			results <- -1
+			parserChannel <- contentParser.Content{}
 			return
 		}
 
@@ -58,6 +55,8 @@ func Download(id int,
 			// logger.Log().Printf("WORKER %d started fetching (priority: %d) %s\n", id, curr.Priority(), url)
 			if err != nil {
 				fmt.Println("something went wrong. ", err)
+				parserChannel <- contentParser.Content{}
+				return
 			}
 
 			responseBody, err := io.ReadAll(response.Body)
@@ -66,17 +65,21 @@ func Download(id int,
 			}
 			defer response.Body.Close()
 
+			logger.Log().Printf("WORKER %d finished fetching %s status: %d\n", id, url, response.StatusCode)
+			if response.StatusCode != 200 {
+				parserChannel <- contentParser.Content{}
+				return
+			}
+
 			err = os.WriteFile(filename, responseBody, 0666)
 			if err != nil {
 				fmt.Println("could not write to file", filename, "reason: ", err)
 			}
 
+			parserChannel <- contentParser.Content{Url: url, Path: filename}
+
 			time.Sleep(WAIT_PER_REQUEST)
-			logger.Log().Printf("WORKER %d finished fetching %s status: %d\n", id, url, response.StatusCode)
-
 			curr = job.Pop()
-
-			results <- id
 		}
 	}
 }
